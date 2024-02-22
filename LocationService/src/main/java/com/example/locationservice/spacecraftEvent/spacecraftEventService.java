@@ -26,6 +26,14 @@ public class spacecraftEventService {
         fetchAllData();
     }
 
+    public List<CombinedEventData> combineData() {
+        return listOfCombineData;
+    }
+
+    public CombinedEventData getEventData(String id){
+        return listOfCombineData.stream().filter(data-> data.getSpacecraftEvent().getId().equals(id)).findFirst().get();
+    }
+
     private void fetchAllData() throws IOException {
         ObjectMapper mapper = new ObjectMapper();
 

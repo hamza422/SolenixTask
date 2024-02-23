@@ -2,44 +2,43 @@ package com.example.locationservice.spacecraftEvent;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-public class spacecraftEventService {
+public class SpacecraftEventService {
+
+    private static Logger LOGGER = LoggerFactory.getLogger(SpacecraftEventService.class);
     private List<Latitude> listOfLatitutes;
     private  List<Longitude> listOfLongitudes;
     private  List<SpacecraftEvent> listOfEvents;
 
     private List<CombinedEventData> listOfCombineData;
 
-    private static final String LATITUDE_FILENAME="src/main/resources/files/latitudes.json";
-    private static final String LONGITUDE_FILENAME="src/main/resources/files/longitudes.json";
-    private static final String EVENT_FILENAME="src/main/resources/files/events.json";
+    private static final String LATITUDE_FILENAME="/files/latitudes.json";
+    private static final String LONGITUDE_FILENAME="/files/longitudes.json";
+    private static final String EVENT_FILENAME="/files/events.json";
 
-    public spacecraftEventService() throws IOException {
-        fetchAllData();
-    }
-
-    public List<CombinedEventData> combineData() {
+    public List<CombinedEventData> combineData()  {
         return listOfCombineData;
     }
 
-    public CombinedEventData getEventData(String id){
-        return listOfCombineData.stream().filter(data-> data.getSpacecraftEvent().getId().equals(id)).findFirst().get();
+    public CombinedEventData getEventData(String id) {
+        return listOfCombineData.stream()
+                .filter(data-> data.getSpacecraftEvent().getId().equals(id))
+                .findFirst().get();
     }
 
-    private void fetchAllData() throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-
-        listOfLatitutes = mapper.readValue(new File(LATITUDE_FILENAME), new TypeReference<>(){});
-        listOfLongitudes = mapper.readValue(new File(LONGITUDE_FILENAME), new TypeReference<>(){});
-        listOfEvents= mapper.readValue(new File(EVENT_FILENAME), new TypeReference<>(){});
+    @PostConstruct
+    private void fetchAllData()  {
+        loadAllJsonFiles();
 
         listOfCombineData =listOfEvents.stream()
                 .map(event -> {
@@ -49,6 +48,21 @@ public class spacecraftEventService {
                     return new CombinedEventData( closestLatitude, closestLongitude, event);
                 })
                 .collect(Collectors.toList());
+    }
+
+    private void loadAllJsonFiles(){
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            listOfLatitutes = mapper.readValue(getClass().getResourceAsStream(LATITUDE_FILENAME), new TypeReference<>() {
+            });
+            listOfLongitudes = mapper.readValue(getClass().getResourceAsStream(LONGITUDE_FILENAME), new TypeReference<>() {
+            });
+            listOfEvents = mapper.readValue(getClass().getResourceAsStream(EVENT_FILENAME), new TypeReference<>() {
+            });
+        }
+        catch (IOException ex){
+            LOGGER.error("File not found");
+        }
     }
 
     private Latitude findClosestLatitude(List<Latitude> listOfLatitudes, Timestamp occurrenceTime) {
